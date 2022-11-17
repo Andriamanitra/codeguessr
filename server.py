@@ -1,8 +1,11 @@
 import sqlite3
+from typing import TypedDict
 import urllib.parse
 from sanic import Sanic
+from sanic.request import Request
+from sanic.response import HTTPResponse
 from sanic.response import json
-from sanic import exceptions
+from sanic.exceptions import NotFound
 
 app = Sanic("CodeGuessr")
 
@@ -11,7 +14,16 @@ app = Sanic("CodeGuessr")
 
 DB_URI = "file:rosettacodes.db?mode=ro"
 
-def codes_from_db(db_uri: str, num_solutions: int = 15) -> list[dict]:
+
+class Solution(TypedDict):
+    solution_id: int
+    task_name: str
+    task_url: str
+    language: str
+    code: str
+
+
+def codes_from_db(db_uri: str, num_solutions: int = 15) -> list[Solution]:
     result = []
     with sqlite3.connect(db_uri, uri=True) as conn:
         res = conn.execute(
@@ -21,14 +33,16 @@ def codes_from_db(db_uri: str, num_solutions: int = 15) -> list[dict]:
             " LIMIT ?", (num_solutions,))
         for solution_id, task_name, lang, code in res.fetchall():
             escaped_task_name = urllib.parse.quote(task_name)
-            result.append({
-                "solution_id": solution_id,
-                "task_name": task_name,
-                "task_url": f"https://rosettacode.org/wiki/{escaped_task_name}",
-                "language": lang,
-                "code": code,
-            })
+            solution = Solution(
+                solution_id=solution_id,
+                task_name=task_name,
+                task_url=f"https://rosettacode.org/wiki/{escaped_task_name}",
+                language=lang,
+                code=code
+            )
+            result.append(solution)
     return result
+
 
 def langs_from_db(db_uri: str) -> list[str]:
     with sqlite3.connect(db_uri, uri=True) as conn:
@@ -36,7 +50,7 @@ def langs_from_db(db_uri: str) -> list[str]:
         return [lang for (lang,) in res.fetchall()]
 
 
-def solution_from_db(db_uri: str, solution_id) -> dict:
+def solution_from_db(db_uri: str, solution_id: int) -> Solution:
     with sqlite3.connect(db_uri, uri=True) as conn:
         res = conn.execute(
             "SELECT task_name, lang, code"
@@ -45,28 +59,31 @@ def solution_from_db(db_uri: str, solution_id) -> dict:
         found = res.fetchone()
 
     if found is None:
-        raise exceptions.NotFound(f"Could not find a solution with id={solution_id}")
+        raise NotFound(f"Could not find a solution with id={solution_id}")
 
     task_name, lang, code = found
     escaped_task_name = urllib.parse.quote(task_name)
-    return {
-        "solution_id": solution_id,
-        "task_name": task_name,
-        "task_url": f"https://rosettacode.org/wiki/{escaped_task_name}",
-        "language": lang,
-        "code": code
-    }
+    return Solution(
+        solution_id=solution_id,
+        task_name=task_name,
+        task_url=f"https://rosettacode.org/wiki/{escaped_task_name}",
+        language=lang,
+        code=code
+    )
+
 
 @app.get("/api/solution/<solution_id:int>")
-async def api_solution(req, solution_id: int):
+async def api_solution(req: Request, solution_id: int) -> HTTPResponse:
     return json(solution_from_db(DB_URI, solution_id))
 
+
 @app.get("/api/randoms")
-async def api_randoms(req):
+async def api_randoms(req: Request) -> HTTPResponse:
     return json(codes_from_db(DB_URI))
 
+
 @app.get("/api/langs")
-async def api_langs(req):
+async def api_langs(req: Request) -> HTTPResponse:
     return json(langs_from_db(DB_URI))
 
 
