@@ -11,14 +11,14 @@ app = Sanic("CodeGuessr")
 
 DB_URI = "file:rosettacodes.db?mode=ro"
 
-def codes_from_db(n=15):
+def codes_from_db(db_uri: str, num_solutions: int = 15) -> list[dict]:
     result = []
-    with sqlite3.connect(DB_URI, uri=True) as conn:
+    with sqlite3.connect(db_uri, uri=True) as conn:
         res = conn.execute(
             "SELECT id, task_name, lang, code"
             " FROM solutions"
             " ORDER BY random()"
-            " LIMIT ?", (n,))
+            " LIMIT ?", (num_solutions,))
         for solution_id, task_name, lang, code in res.fetchall():
             escaped_task_name = urllib.parse.quote(task_name)
             result.append({
@@ -30,15 +30,14 @@ def codes_from_db(n=15):
             })
     return result
 
-def langs_from_db():
-    with sqlite3.connect(DB_URI, uri=True) as conn:
+def langs_from_db(db_uri: str) -> list[str]:
+    with sqlite3.connect(db_uri, uri=True) as conn:
         res = conn.execute("SELECT DISTINCT(lang) FROM solutions")
-        return [r[0] for r in res.fetchall()]
+        return [lang for (lang,) in res.fetchall()]
 
 
-@app.get("/api/solution/<solution_id:int>")
-async def api_solution(req, solution_id: int):
-    with sqlite3.connect(DB_URI, uri=True) as conn:
+def solution_from_db(db_uri: str, solution_id) -> dict:
+    with sqlite3.connect(db_uri, uri=True) as conn:
         res = conn.execute(
             "SELECT task_name, lang, code"
             " FROM solutions"
@@ -50,21 +49,25 @@ async def api_solution(req, solution_id: int):
 
     task_name, lang, code = found
     escaped_task_name = urllib.parse.quote(task_name)
-    return json({
+    return {
         "solution_id": solution_id,
         "task_name": task_name,
         "task_url": f"https://rosettacode.org/wiki/{escaped_task_name}",
         "language": lang,
         "code": code
-    })
+    }
+
+@app.get("/api/solution/<solution_id:int>")
+async def api_solution(req, solution_id: int):
+    return json(solution_from_db(DB_URI, solution_id))
 
 @app.get("/api/randoms")
 async def api_randoms(req):
-    return json(codes_from_db())
+    return json(codes_from_db(DB_URI))
 
 @app.get("/api/langs")
 async def api_langs(req):
-    return json(langs_from_db())
+    return json(langs_from_db(DB_URI))
 
 
 app.static("/assets", "./frontend/dist/assets/")
