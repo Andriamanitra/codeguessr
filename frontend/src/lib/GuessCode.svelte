@@ -111,12 +111,14 @@
   }
   .code {
     border: 1px solid grey;
-    padding: 5px;
-    height: 30em;
+    tab-size: 4;
+    padding: 0px 5px;
+    height: 40vh;
     overflow-y: auto;
   }
   .small {
-    height: 10em;
+    min-height: 1em;
+    max-height: 8em;
   }
   .solution-link {
     font-weight: lighter;
@@ -129,7 +131,7 @@
   }
   button {
     font-size: 1.1em;
-    min-width: 18ch;
+    width: 45%;
     padding: 5px;
     cursor: pointer;
   }
