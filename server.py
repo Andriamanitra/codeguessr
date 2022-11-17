@@ -6,6 +6,7 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic.response import json
 from sanic.exceptions import NotFound
+from sanic_ext import openapi
 
 app = Sanic("CodeGuessr")
 
@@ -21,6 +22,12 @@ class Solution(TypedDict):
     task_url: str
     language: str
     code: str
+
+
+class ErrorJSON(TypedDict):
+    description: str
+    status: int
+    message: str
 
 
 def codes_from_db(db_uri: str, num_solutions: int = 15) -> list[Solution]:
@@ -73,22 +80,28 @@ def solution_from_db(db_uri: str, solution_id: int) -> Solution:
 
 
 @app.get("/api/solution/<solution_id:int>")
+@openapi.response(200, {"application/json": Solution}, "OK")
+@openapi.response(404, {"application/json": ErrorJSON}, "Not found")
 async def api_solution(req: Request, solution_id: int) -> HTTPResponse:
+    """Get a solution by id"""
     return json(solution_from_db(DB_URI, solution_id))
 
 
 @app.get("/api/randoms")
+@openapi.response(200, {"application/json": list[Solution]}, "OK")
 async def api_randoms(req: Request) -> HTTPResponse:
+    """Get a list of random solutions"""
     return json(codes_from_db(DB_URI))
 
 
 @app.get("/api/langs")
+@openapi.response(200, {"application/json": list[str]}, "OK")
 async def api_langs(req: Request) -> HTTPResponse:
+    """Get a list of available programming languages"""
     return json(langs_from_db(DB_URI))
 
 
-app.static("/assets", "./frontend/dist/assets/")
-app.static("/", "./frontend/dist/index.html", name="index")
+app.static("/", "./frontend/dist/")
 
 
 if __name__ == "__main__":
