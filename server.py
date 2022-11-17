@@ -101,7 +101,8 @@ async def api_langs(req: Request) -> HTTPResponse:
     return json(langs_from_db(DB_URI))
 
 
-app.static("/", "./frontend/dist/")
+app.static("/assets", "./frontend/dist/assets", name="static_assets")
+app.static("/", "./frontend/dist/index.html")
 
 
 if __name__ == "__main__":
