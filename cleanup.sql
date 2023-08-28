@@ -1,6 +1,6 @@
 /* The Whitespace solutions often also have the code in non-whitespace! Can't have that! */
 DELETE FROM solutions
-WHERE lang = "Whitespace" AND TRIM(code, CHAR(20)||CHAR(10)||CHAR(9)||' ') <> '';
+WHERE lang = 'Whitespace' AND TRIM(code, CHAR(20)||CHAR(10)||CHAR(9)||' ') <> '';
 
 /* C# and F# have a whole bunch of variations of their names, let's fix that... */
 UPDATE solutions SET lang = 'C#' WHERE lang LIKE '%C#%';
@@ -37,11 +37,11 @@ UPDATE solutions SET lang = 'ALGOL' WHERE lang LIKE 'ALGOL%';
 
 /* too many different BASICs */
 DELETE FROM solutions
-WHERE lang LIKE '%BASIC%' AND lang <> "BASIC" AND lang <> "TI-83 BASIC";
+WHERE lang LIKE '%BASIC%' AND lang <> 'BASIC' AND lang <> 'TI-83 BASIC';
 
 /* too many different assemblys */
 DELETE FROM solutions
-WHERE lang LIKE '%assembly%' AND lang <> "x86 Assembly" AND lang <> "WebAssembly";
+WHERE lang LIKE '%assembly%' AND lang <> 'x86 Assembly' AND lang <> 'WebAssembly';
 
 /* get rid of the most obscure languages */
 DELETE FROM solutions
